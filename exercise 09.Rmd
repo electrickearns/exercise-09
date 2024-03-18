@@ -1,0 +1,58 @@
+---
+title: "Exercise-09"
+author: "Amber"
+date: "2024-03-18"
+output: html_document
+---
+
+## Prelims
+These packages are used in this exercise. Make sure they are installed and active!
+
+```
+{r}
+install.packages ("tidyverse")
+library (tidyverse)
+
+install.packages ("skimr")
+library (skimr)
+```
+
+## Step one
+Load in the data as a tibble named d
+```
+{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-2024-datasets/main/Street_et_al_2017.csv"
+d <- read_csv (f, col_names=TRUE) 
+```
+
+Then produce an exploratory data analysis with a five number summary including medium, min and max, and 1st and 3rd quartile values. Additionall, mean and sd should be generated. Do this for each quantitive variable. 
+
+This can be achieved for each variable in long form using the summary function and a long code as seen in a previous exercise, or done concisely with the {skim()} function.
+
+```
+{r}
+exploratory <- skim (d, Social_learning, Research_effort, ECV, Group_size, Gestation, Weaning, Longevity, Sex_maturity, Body_mass, Maternal_investment, Repro_lifespan)
+```
+
+## Step two
+Plot ECV (brain size) as a function of social group size (Group_size), Longevity, juvenile period length (Weaning), and reproductive lifespan (Repro_lifespan)
+
+```
+{r}
+par(mfrow = c(2, 2))
+attach(d) 
+plot(x = Group_size, y = ECV)
+plot(x = Longevity, y = ECV)
+plot(x = Weaning, y = ECV)
+plot(x = Repro_lifespan, y = ECV)
+
+# And the same with the data transformed for visual clarity
+par(mfrow = c(2, 2))
+attach(d) 
+plot(x = log(Group_size), y = log(ECV))
+plot(x = log(Longevity), y = log(ECV))
+plot(x = log(Weaning), y = log(ECV))
+plot(x = log(Repro_lifespan), y = log(ECV))
+```
+
+## Step three
