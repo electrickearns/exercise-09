@@ -19,6 +19,7 @@ library (skimr)
 
 ## Step one
 Load in the data as a tibble named d
+
 ```
 {r}
 f <- "https://raw.githubusercontent.com/difiore/ada-2024-datasets/main/Street_et_al_2017.csv"
@@ -39,20 +40,63 @@ Plot ECV (brain size) as a function of social group size (Group_size), Longevity
 
 ```
 {r}
-par(mfrow = c(2, 2))
-attach(d) 
-plot(x = Group_size, y = ECV)
-plot(x = Longevity, y = ECV)
-plot(x = Weaning, y = ECV)
-plot(x = Repro_lifespan, y = ECV)
-
-# And the same with the data transformed for visual clarity
-par(mfrow = c(2, 2))
-attach(d) 
-plot(x = log(Group_size), y = log(ECV))
-plot(x = log(Longevity), y = log(ECV))
-plot(x = log(Weaning), y = log(ECV))
-plot(x = log(Repro_lifespan), y = log(ECV))
+p1 <- ggplot(data = d, aes(x = Group_size, y = ECV), na.rm= TRUE) + geom_point()
+p2 <- ggplot(data = d, aes(x = Longevity, y = ECV), na.rm= TRUE) + geom_point()
+p3 <- ggplot(data = d, aes(x = Weaning, y = ECV), na.rm= TRUE) + geom_point()
+p4 <- ggplot(data = d, aes(x = Repro_lifespan, y = ECV), na.rm= TRUE) + geom_point()
 ```
 
 ## Step three
+Derive by hand the ordinary least squares regression coefficients B1 and B0 for EVC as a function of social group size. 
+
+```
+{r}
+#start by filtering out blanks
+s <- d %>% filter(!is.na(Group_size) & !is.na(ECV))
+b1 <- cov(s$ECV, s$Group_size)/var(s$Group_size)
+b0 <- mean(s$ECV) - b1*mean(s$Group_size)
+```
+
+## Step Four
+Confirm you get the same results using the lm() function
+
+```
+{r}
+lm_results <- lm(ECV ~ Group_size, s)
+summary(lm_results)
+```
+
+## Step Five
+Repeat the analysis above for three major radiations of primates ("catarrhines', "platyrrhines" and "stresirhines" under Taxonomic_group). Do the regression coefficients differ among groups? How might you determine this?
+Unfortunately, my attempts to pipe it all into one line of code kept falling apart at the lm stage, so it is in multiple lines of code for each. Inelegant but it works!
+
+```
+{r}
+catarrhines <- s %>%
+  filter (Taxonomic_group == "Catarrhini") 
+lm_cat <- lm(ECV ~ Group_size, catarrhines) 
+summary(lm_cat)
+1.146
+
+platyrrhines <- s %>%
+  filter (Taxonomic_group == "Platyrrhini") 
+lm_plat <- lm(ECV ~ Group_size, platyrrhines) 
+summary(lm_plat)
+1.965
+
+strepsirhines <- s %>%
+  filter (Taxonomic_group == "Strepsirhini")
+lm_strep <- lm(ECV ~ Group_size, strepsirhines)
+summary(lm_strep)
+1.841
+```
+
+The regression coefficients do differ among groups. Cattarhines have the lowest at 1.146, then Strepsirhines at 1.841, then Platyrrhines at 1.965. If one wanted to determine the significance of this difference, permuting the data would be the next step!
+
+## Step Six
+Calculate the standard error for the slope coefficient, the 95% CI, and the p-value associated with this coefficient by hand for the first regression of ECV on social group size. Confirm the information from the results of running the lm() function.
+
+```
+{r}
+
+```
