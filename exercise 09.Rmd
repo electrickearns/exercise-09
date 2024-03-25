@@ -94,9 +94,30 @@ summary(lm_strep)
 The regression coefficients do differ among groups. Cattarhines have the lowest at 1.146, then Strepsirhines at 1.841, then Platyrrhines at 1.965. If one wanted to determine the significance of this difference, permuting the data would be the next step!
 
 ## Step Six
-Calculate the standard error for the slope coefficient, the 95% CI, and the p-value associated with this coefficient by hand for the first regression of ECV on social group size. Confirm the information from the results of running the lm() function.
+Calculate the standard error for the slope coefficient (b1), the 95% CI, and the p-value associated with this coefficient by hand for the first regression of ECV on social group size. Confirm the information from the results of running the lm() function.
 
 ```
 {r}
+# I used this to calculate the SE by hand but I was not getting the same SE as in the model. I eventually had to move on unfortunately due to time constraints. I would love to know what's wrong with it! 
+sqrt((sum((lm_results$model$Group_size-mean(lm_results$model$Group_size))^2))/((n-2)* sum((lm_results$model$ECV-mean(lm_results$model$ECV))^2)))
 
+se <- 0.351
+
+#CI: 
+ ci <- quantile(lm_results$model$ECV, c(0.025,0.975))
+```
+
+## Step Seven
+Create a 1000 permutation to generate a null sampling distribution for the slope coefficient. Calculate the p-value associated with your original slope coefficient. 
+
+```
+{r}
+perm <- 1000  
+perm_results <- vector(length = n)  
+for (i in 1:perm) {
+    perm_results [[i]] <- cov(s$ECV, s$Group_size)/var(s$Group_size)
+}
+
+# calculate the two.sided p value
+(p <- (sum(permuted_diff >= abs(actual_diff)) + sum(permuted_diff <= -abs(actual_diff)))/nperm)
 ```
