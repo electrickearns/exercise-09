@@ -8,20 +8,17 @@ output: html_document
 ## Prelims
 These packages are used in this exercise. Make sure they are installed and active!
 
-```
-{r}
-install.packages ("tidyverse")
-library (tidyverse)
+```{r}
 
-install.packages ("skimr")
+library (tidyverse)
 library (skimr)
+library (infer)
 ```
 
 ## Step one
 Load in the data as a tibble named d
 
-```
-{r}
+```{r}
 f <- "https://raw.githubusercontent.com/difiore/ada-2024-datasets/main/Street_et_al_2017.csv"
 d <- read_csv (f, col_names=TRUE) 
 ```
@@ -30,16 +27,14 @@ Then produce an exploratory data analysis with a five number summary including m
 
 This can be achieved for each variable in long form using the summary function and a long code as seen in a previous exercise, or done concisely with the {skim()} function.
 
-```
-{r}
+```{r}
 exploratory <- skim (d, Social_learning, Research_effort, ECV, Group_size, Gestation, Weaning, Longevity, Sex_maturity, Body_mass, Maternal_investment, Repro_lifespan)
 ```
 
 ## Step two
 Plot ECV (brain size) as a function of social group size (Group_size), Longevity, juvenile period length (Weaning), and reproductive lifespan (Repro_lifespan)
 
-```
-{r}
+```{r}
 p1 <- ggplot(data = d, aes(x = Group_size, y = ECV), na.rm= TRUE) + geom_point()
 p2 <- ggplot(data = d, aes(x = Longevity, y = ECV), na.rm= TRUE) + geom_point()
 p3 <- ggplot(data = d, aes(x = Weaning, y = ECV), na.rm= TRUE) + geom_point()
@@ -49,8 +44,7 @@ p4 <- ggplot(data = d, aes(x = Repro_lifespan, y = ECV), na.rm= TRUE) + geom_poi
 ## Step three
 Derive by hand the ordinary least squares regression coefficients B1 and B0 for EVC as a function of social group size. 
 
-```
-{r}
+```{r}
 #start by filtering out blanks
 s <- d %>% filter(!is.na(Group_size) & !is.na(ECV))
 b1 <- cov(s$ECV, s$Group_size)/var(s$Group_size)
@@ -60,8 +54,7 @@ b0 <- mean(s$ECV) - b1*mean(s$Group_size)
 ## Step Four
 Confirm you get the same results using the lm() function
 
-```
-{r}
+```{r}
 lm_results <- lm(ECV ~ Group_size, s)
 summary(lm_results)
 ```
@@ -70,8 +63,7 @@ summary(lm_results)
 Repeat the analysis above for three major radiations of primates ("catarrhines', "platyrrhines" and "stresirhines" under Taxonomic_group). Do the regression coefficients differ among groups? How might you determine this?
 Unfortunately, my attempts to pipe it all into one line of code kept falling apart at the lm stage, so it is in multiple lines of code for each. Inelegant but it works!
 
-```
-{r}
+```{r}
 catarrhines <- s %>%
   filter (Taxonomic_group == "Catarrhini") 
 lm_cat <- lm(ECV ~ Group_size, catarrhines) 
@@ -97,27 +89,68 @@ The regression coefficients do differ among groups. Cattarhines have the lowest 
 Calculate the standard error for the slope coefficient (b1), the 95% CI, and the p-value associated with this coefficient by hand for the first regression of ECV on social group size. Confirm the information from the results of running the lm() function.
 
 ```
-{r}
+# I intentionally set this chunk to not render because it wasn't working and it wouldn't knit with it not working. 
 # I used this to calculate the SE by hand but I was not getting the same SE as in the model. I eventually had to move on unfortunately due to time constraints. I would love to know what's wrong with it! 
+
 sqrt((sum((lm_results$model$Group_size-mean(lm_results$model$Group_size))^2))/((n-2)* sum((lm_results$model$ECV-mean(lm_results$model$ECV))^2)))
 
 se <- 0.351
 
 #CI: 
- ci <- quantile(lm_results$model$ECV, c(0.025,0.975))
+ci <- quantile(lm_results$model$ECV, c(0.025,0.975))
+    
+alpha <- 0.05
+confidence_level <- 1 - alpha
+p_lower <- alpha/2
+p_upper <- 1 - (alpha/2)
+degrees_of_freedom <- nrow(s) - 2
+critical_value <- qt(p_upper, df = degrees_of_freedom)
+
+#ultimately, as you can see, I kind of gave up here. I tried several different ways to do this, but could not figure out what I was doing wrong. I wish I had saved all my methods, because I bet one was close, but I did not, and I eventually just needed to turn it in.
+  
 ```
 
 ## Step Seven
 Create a 1000 permutation to generate a null sampling distribution for the slope coefficient. Calculate the p-value associated with your original slope coefficient. 
 
-```
-{r}
+```{r}
 perm <- 1000  
-perm_results <- vector(length = n)  
-for (i in 1:perm) {
-    perm_results [[i]] <- cov(s$ECV, s$Group_size)/var(s$Group_size)
-}
+perm_results <- vector(length = perm)  
+
+# for (i in 1:perm) { perm_results [[i]] <- lm(ECV ~ sample(Group_size), data= s)} kept giving error code: 
+  #"more elements supplied than there are to replace"
+  # tried to find solution online but was unsuccessful
+
+# perm_results <- vector (length= s$ECV) also didn't work.
+
 
 # calculate the two.sided p value
-(p <- (sum(permuted_diff >= abs(actual_diff)) + sum(permuted_diff <= -abs(actual_diff)))/nperm)
+# This is the code I wanted to use, but it was not working because perm_results kept coming up FALSE:
+## p_perm <- (sum(perm_results >= abs(obs))
+```
+
+## Step Eight
+Use boostrapping to generate a 95% CI for the estimate of slope coefficient using both the percentile method and the theory-based method. Do these CIs suggest your slope coefficient is different than zero?
+
+```{r}
+alpha <- 0.05
+p_lower <- alpha/2
+p_upper <- 1 - (alpha/2)
+degrees_of_freedom <- nrow(s) - 2
+critical_value <- qt(p_upper, df = degrees_of_freedom)
+
+boot_slope <- s %>%
+  specify(ECV ~ Group_size) %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "slope")
+
+boot_summary <- boot_slope %>%
+  summarize(
+    estimate = mean(stat),
+    sd_boot = sd(stat),
+    lower = estimate - sd_boot * critical_value,
+    upper = estimate + sd_boot * critical_value,
+    boot.lower = quantile(stat, 0.025),
+    boot.upper = quantile(stat, 0.975)
+  )
 ```
